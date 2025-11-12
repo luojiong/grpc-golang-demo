@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gRPC Calculator 测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-calculate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-calculate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-calculate:active {
+            transform: translateY(0);
+        }
+
+        .btn-calculate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-clear {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+
+        .result-container {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .result-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .result-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .error {
+            color: #e53e3e;
+            background: #fff5f5;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+
+        .formula {
+            text-align: center;
+            font-size: 24px;
+            color: #333;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 gRPC Calculator</h1>
+        <p class="subtitle">通过 HTTP Gateway 调用 gRPC 服务</p>
+        
+        <div class="input-group">
+            <label for="numberA">第一个数字 (A)</label>
+            <input type="number" id="numberA" placeholder="请输入第一个数字" value="10">
+        </div>
+
+        <div class="input-group">
+            <label for="numberB">第二个数字 (B)</label>
+            <input type="number" id="numberB" placeholder="请输入第二个数字" value="20">
+        </div>
+
+        <div class="button-group">
+            <button class="btn-calculate" onclick="calculate()">计算</button>
+            <button class="btn-clear" onclick="clearAll()">清空</button>
+        </div>
+
+        <div class="loading" id="loading">正在调用 gRPC 服务</div>
+
+        <div class="result-container" id="resultContainer" style="display: none;">
+            <div class="result-label">计算结果</div>
+            <div class="formula" id="formula"></div>
+            <div class="result-value" id="result">0</div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="info-box">
+            <strong>工作流程：</strong><br>
+            1. HTML 页面发送 HTTP POST 请求到网关 (localhost:8080)<br>
+            2. HTTP Gateway 转发请求到 gRPC 服务器 (localhost:50051)<br>
+            3. gRPC 服务器计算结果并返回<br>
+            4. Gateway 将结果返回给浏览器
+        </div>
+    </div>
+
+    <script>
+        async function calculate() {
+            const numberA = parseInt(document.getElementById('numberA').value);
+            const numberB = parseInt(document.getElementById('numberB').value);
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('resultContainer');
+            const resultElement = document.getElementById('result');
+            const formulaElement = document.getElementById('formula');
+            const errorElement = document.getElementById('error');
+            const calculateBtn = document.querySelector('.btn-calculate');
+
+            // 验证输入
+            if (isNaN(numberA) || isNaN(numberB)) {
+                showError('请输入有效的数字');
+                return;
+            }
+
+            // 重置状态
+            errorElement.style.display = 'none';
+            loading.style.display = 'block';
+            resultContainer.style.display = 'none';
+            calculateBtn.disabled = true;
+
+            try {
+                // 调用HTTP Gateway API
+                const response = await fetch('http://localhost:8080/api/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        a: numberA,
+                        b: numberB
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // 显示结果
+                formulaElement.textContent = `${numberA} + ${numberB} =`;
+                resultElement.textContent = data.result;
+                resultContainer.style.display = 'flex';
+                
+                console.log('gRPC 调用成功:', data);
+            } catch (error) {
+                showError('调用失败: ' + error.message + '<br>请确保 gRPC 服务器和 HTTP Gateway 都在运行');
+                console.error('Error:', error);
+            } finally {
+                loading.style.display = 'none';
+                calculateBtn.disabled = false;
+            }
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('error');
+            errorElement.innerHTML = '❌ ' + message;
+            errorElement.style.display = 'block';
+        }
+
+        function clearAll() {
+            document.getElementById('numberA').value = '';
+            document.getElementById('numberB').value = '';
+            document.getElementById('resultContainer').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('numberA').focus();
+        }
+
+        // 支持回车键提交
+        document.getElementById('numberA').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') calculate();
+        });
+
+        document.getElementById('numberB').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') calculate();
+        });
+
+        // 页面加载完成后自动聚焦第一个输入框
+        window.onload = function() {
+            document.getElementById('numberA').focus();
+        };
+    </script>
+</body>
+</html>

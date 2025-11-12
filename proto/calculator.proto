@@ -1,19 +1,31 @@
+// Calculator 计算器服务定义文件
+// 提供基础的数学计算功能（加法）
+
 syntax = "proto3";
 
 package calculator;
 
-// 最关键的一行
+// 最关键的一行 - 生成的 Go 代码存放位置
 option go_package = "/proto;proto";
 
+// Calculator 服务
+// 提供基础的数学计算功能
 service Calculator {
+  // Add 方法：实现两个整数的加法
+  // 接收：AddRequest (包含两个被加数)
+  // 返回：AddResponse (包含加法结果)
   rpc Add (AddRequest) returns (AddResponse);
 }
 
+// AddRequest 是 Add 方法的请求消息
+// 包含两个被加数
 message AddRequest {
-  int32 a = 1;
-  int32 b = 2;
+  int32 a = 1;  // 第一个加数
+  int32 b = 2;  // 第二个加数
 }
 
+// AddResponse 是 Add 方法的响应消息
+// 包含计算结果
 message AddResponse {
-  int32 result = 1;
+  int32 result = 1;  // 加法运算的结果（a + b）
 }
